@@ -1,5 +1,5 @@
 module gan_arch
-    use nf, only: network, input, dense, relu, leaky_relu, sigmoid, tanhf
+    use nf, only: network
     implicit none
 
     type :: gan
