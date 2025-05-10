@@ -1,0 +1,17 @@
+name = "FortGAN"
+version = "0.1.0"
+license = "MIT"
+author = ["elahpeca <acephaleee@gmail.com>"]
+description = "GAN for MNIST in Fortran using neural-fortran"
+
+[build]
+auto-executables = true
+auto-tests = true
+
+[[executable]]
+name = "FortGAN"                    
+source-dir = "src"
+main = "main.f90"                    
+
+[dependencies]
+neural-fortran = { git = "https://github.com/modern-fortran/neural-fortran.git", branch = "main" }
