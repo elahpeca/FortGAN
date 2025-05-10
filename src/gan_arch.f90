@@ -7,18 +7,33 @@ module gan_arch
         type(network), pointer :: discriminator
     contains
         procedure :: init => init_gan
+        procedure :: destroy => destroy_gan
     end type gan
 
     contains
 
     subroutine init_gan(this, generator_impl, discriminator_impl)
-        class(GAN), intent(inout) :: this
+        class(gan), intent(inout) :: this
         class(network), intent(in) :: generator_impl, discriminator_impl 
         
         allocate(this%generator, source = generator_impl)
         allocate(this%discriminator, source = discriminator_impl)
 
     end subroutine init_gan
+
+    subroutine destroy_gan(this)
+        class(gan), intent(inout) :: this
+
+        if (associated(this%generator)) then
+            deallocate(this%generator)
+            nullify(this%generator)
+        end if
+
+        if (associated(this%discriminator)) then
+            deallocate(this%discriminator)
+            nullify(this%discriminator)
+        end if
+    end subroutine destroy_gan
 
 end module gan_arch
 
