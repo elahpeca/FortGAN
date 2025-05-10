@@ -3,9 +3,8 @@ module gan_arch
     implicit none
 
     type :: gan
-        type(network), pointer :: generator, discriminator
-        integer :: noise_dim = 100
-        integer :: img_size = 784
+        type(network), pointer :: generator
+        type(network), pointer :: discriminator
     contains
         procedure :: init => init_gan
     end type gan
