@@ -8,6 +8,8 @@ module gan_arch
     contains
         procedure :: init => init_gan
         procedure :: destroy => destroy_gan
+        procedure :: get_generator => get_gan_generator  
+        procedure :: get_discriminator => get_gan_discriminator 
     end type gan
 
     contains
@@ -33,7 +35,23 @@ module gan_arch
             deallocate(this%discriminator)
             nullify(this%discriminator)
         end if
+        
     end subroutine destroy_gan
+
+    ! getters for generator and discriminator 
+    function get_gan_generator(this) result(gen)
+        class(gan), intent(in) :: this
+        type(network), pointer :: gen
+        gen => this%generator
+
+    end function get_gan_generator
+
+    function get_gan_discriminator(this) result(disc)
+        class(gan), intent(in) :: this
+        type(network), pointer :: disc
+        disc => this%discriminator
+        
+    end function get_gan_discriminator
 
 end module gan_arch
 
