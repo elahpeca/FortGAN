@@ -1,64 +1,103 @@
-module gan_train
+module gan_train_single
+    use gan_arch, only: gan
     use nf_network, only: network
     use nf_optimizers, only: optimizer_base_type
     use nf_random, only: random_normal
+    use nf_loss, only: loss_type
+    use nf_layer, only: layer
     implicit none
 
-    integer, private :: step_counter = 0
-
 contains
-    subroutine train_gan_step( &
-        gen, &
-        disc, & 
-        real_images, &
-        batch_size, &
+
+    subroutine train_gan_single( &
+        gan_instance, &
+        real_image, &
         noise_dim, &
-        gen_optimizer, &
-        disc_optimizer &
+        optimizer_gen, &
+        optimizer_disc, &
+        loss_disc, &
+        loss_gen &
     )
+        class(gan), intent(inout) :: gan_instance
+        real, intent(in) :: real_image(:)
+        integer, intent(in) :: noise_dim
+        class(optimizer_base_type), intent(inout) :: optimizer_gen, optimizer_disc
+        class(loss_type) :: loss_gen, loss_disc
+
+        type(network), pointer :: gen, disc
+        real, allocatable :: real_target(:)
+        real, allocatable :: fake_target(:)
+        real, allocatable :: noise(:)
+        real, allocatable :: fake_image(:)
+
+        gen => gan_instance%get_generator()
+        disc => gan_instance%get_discriminator()
+
+        allocate(real_target(1))
+        real_target = 1.0
+        call train_disc_single(disc, real_image, real_target, optimizer_disc, loss_disc)
+        deallocate(real_target)
+
+        allocate(noise(noise_dim))
+        call random_normal(noise)
+        call gen%forward(noise)
+        fake_image = gen%predict(noise)
+        allocate(fake_target(1))
+        fake_target = 0.0
+        call train_disc_single(disc, fake_image, fake_target, optimizer_disc, loss_disc)
+        deallocate(noise)
+        deallocate(fake_image)
+        deallocate(fake_target)
+
+        allocate(noise(noise_dim))
+        call random_normal(noise)
+        call gen%forward(noise)
+        fake_image = gen%predict(noise)
+        call disc%forward(fake_image)
+        allocate(real_target(1))
+        real_target = 1.0
+        call train_gen_single(gen, disc, fake_image, real_target, optimizer_gen, loss_gen)
+        deallocate(noise)
+        deallocate(real_target)
+
+    end subroutine train_gan_single
+
+    subroutine train_disc_single(disc, data, target, optimizer, loss)
+        class(network), intent(inout) :: disc
+        real, intent(in) :: data(:)
+        real, intent(in) :: target(:)
+        class(optimizer_base_type), intent(inout) :: optimizer
+        class(loss_type), intent(in) :: loss
+
+        real, allocatable :: output(:)
+        real :: loss_val
+
+        call disc%forward(data)
+        output = disc%predict(data)
+        print *, output
+        print *, target
+        loss_val = loss%eval(target, output)
+        print *, "Discriminator loss (single):", loss_val
+
+        call disc%backward(target, loss)
+        call disc%update(optimizer, 1)
+
+    end subroutine train_disc_single
+
+subroutine train_gen_single(gen, disc, fake_data, target, optimizer, loss)
     class(network), intent(inout) :: gen
     class(network), intent(inout) :: disc
-    real, intent(in) :: real_images(:,:)  
-    integer, intent(in) :: batch_size, noise_dim
-    class(optimizer_base_type), intent(in) :: gen_optimizer, disc_optimizer
-    
-    real, allocatable :: noise(:,:), fake_images(:,:)
-    real, allocatable :: real_labels(:,:), fake_labels(:,:)  
-    real, allocatable :: gen_labels(:,:)                     
+    real, intent(in) :: fake_data(:)
+    real, intent(in) :: target(:) ! Цель (1.0)
+    class(optimizer_base_type), intent(inout) :: optimizer
+    class(loss_type) :: loss
 
-    step_counter = step_counter + 1
+    real, allocatable :: disc_output(:)
+    type(layer), allocatable :: a
+    real :: loss_val
 
-    allocate(real_labels(1, batch_size), source=1.0)
-    allocate(fake_labels(1, batch_size), source=0.0)
-    allocate(gen_labels(1, batch_size), source=1.0)
-    
-    allocate(noise(noise_dim, batch_size))
-    call random_normal(noise)
-    
-    print *, "Step:", step_counter
+    !!! impossible without specific realization of GAN backbrop =(
 
-    ! train discriminator on real data
-    call disc%set_training_mode(.true.)
+end subroutine train_gen_single
 
-    call disc%train( &
-        input_data = real_images, &       
-        output_data = real_labels, &       
-        batch_size = batch_size, &
-        epochs = 1, &
-        optimizer = disc_optimizer &
-    )
-    
-    ! train discriminator on fake data
-    fake_images = gen%predict_batch(noise) 
-    call disc%train( &
-        input_data = fake_images, &        
-        output_data = fake_labels, &      
-        batch_size = batch_size, &
-        epochs = 1, &
-        optimizer = disc_optimizer &
-    )
-    
-    ! GENERATOR TRAIN LOGIC (COMING SOON)
-
-    end subroutine train_gan_step
-end module gan_train
+end module gan_train_single
